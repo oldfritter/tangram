@@ -1,5 +1,7 @@
 # Unified Message Queue (MQ) Guide
 
+> [中文版](./MQ_CN.md)
+
 This module provides a unified message queue interface that automatically selects the underlying implementation (Redis, Kafka, or RabbitMQ) based on the configuration file.
 
 ## Quick Start

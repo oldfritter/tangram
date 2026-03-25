@@ -1,5 +1,7 @@
 # Project Introduction
 
+> [中文版](./README_CN.MD)
+
 This project aims to integrate services distributed across the network into a production system.
 
 Communication between service nodes relies on MQ (Message Queue).

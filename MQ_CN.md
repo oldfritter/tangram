@@ -1,5 +1,7 @@
 # 统一消息队列 (MQ) 使用指南
 
+> [English](./MQ.md)
+
 本模块提供统一的消息队列接口，根据配置文件自动选择底层实现（Redis、Kafka 或 RabbitMQ）。
 
 ## 快速开始
@@ -48,7 +50,7 @@ type Message struct {
 }
 
 func main() {
-	// 自动读取 config/app.yml
+	// 自动读取 example/config/app.yml
 	cfg, err := mq.LoadDefaultConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -108,7 +110,7 @@ func main() {
 
 | 方法 | 说明 |
 |------|------|
-| `LoadDefaultConfig()` | 自动加载 `config/app.yml` |
+| `LoadDefaultConfig()` | 自动加载 `example/config/app.yml` |
 | `LoadConfigFromYAML(path)` | 加载指定路径的 YAML 配置 |
 | `LoadConfigFromYAMLString(yaml)` | 从 YAML 字符串加载配置 |
 | `NewMQ(cfg)` | 根据配置创建 MQ 实例 |
