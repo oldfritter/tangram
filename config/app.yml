@@ -1,0 +1,15 @@
+mq:
+  type: "kafka"  # 可选: redis, kafka, rabbitmq
+
+  redis:
+    addr: "localhost:6379"
+    password: ""
+    db: 0
+
+  kafka:
+    addrs:
+      - "localhost:9092"
+    groupId: "my_group"
+
+  rabbitmq:
+    addr: "amqp://guest:guest@localhost:5672/"

@@ -2,7 +2,6 @@ package mq
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
@@ -12,33 +11,43 @@ import (
 	"github.com/oldfritter/tangram/lib/rabbitmq"
 	"github.com/oldfritter/tangram/lib/redis"
 	"github.com/rabbitmq/amqp091-go"
+	"gopkg.in/yaml.v3"
 )
 
 // MessageHandler 处理收到消息的函数类型
 type MessageHandler func(data []byte)
 
-// Config MQ 配置
-type Config struct {
+// MQConfig MQ 配置结构（对应 config/app.yml）
+type MQConfig struct {
 	// 类型: kafka, rabbitmq, redis
-	Type string `json:"type"`
+	Type string `yaml:"type"`
 
 	// Redis 配置
-	Redis struct {
-		Addr     string `json:"addr"`     // 地址，如 localhost:6379
-		Password string `json:"password"` // 密码
-		DB       int    `json:"db"`       // 数据库编号
-	} `json:"redis"`
+	Redis RedisConfig `yaml:"redis"`
 
 	// Kafka 配置
-	Kafka struct {
-		Addrs   []string `json:"addrs"`   // Broker 地址列表
-		GroupID string   `json:"groupId"` // 消费者组 ID
-	} `json:"kafka"`
+	Kafka KafkaConfig `yaml:"kafka"`
 
 	// RabbitMQ 配置
-	RabbitMQ struct {
-		Addr string `json:"addr"` // 连接地址，如 amqp://guest:guest@localhost:5672/
-	} `json:"rabbitmq"`
+	RabbitMQ RabbitMQConfig `yaml:"rabbitmq"`
+}
+
+// RedisConfig Redis 配置
+type RedisConfig struct {
+	Addr     string `yaml:"addr"`     // 地址，如 localhost:6379
+	Password string `yaml:"password"` // 密码
+	DB       int    `yaml:"db"`       // 数据库编号
+}
+
+// KafkaConfig Kafka 配置
+type KafkaConfig struct {
+	Addrs   []string `yaml:"addrs"`   // Broker 地址列表
+	GroupID string   `yaml:"groupId"` // 消费者组 ID
+}
+
+// RabbitMQConfig RabbitMQ 配置
+type RabbitMQConfig struct {
+	Addr string `yaml:"addr"` // 连接地址，如 amqp://guest:guest@localhost:5672/
 }
 
 // publisher 发布者接口
@@ -59,13 +68,13 @@ type subscriber interface {
 type MQ struct {
 	pub     publisher
 	sub     subscriber
-	cfg     *Config
+	cfg     *MQConfig
 	mu      sync.Mutex
 	msgType string // 当前消息类型：kafka=topic, rabbitmq=queue, redis=channel
 }
 
 // NewMQ 根据配置创建 MQ 实例
-func NewMQ(cfg *Config) (*MQ, error) {
+func NewMQ(cfg *MQConfig) (*MQ, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config cannot be nil")
 	}
@@ -95,27 +104,43 @@ func NewMQ(cfg *Config) (*MQ, error) {
 	return mq, nil
 }
 
-// LoadConfig 从配置文件加载配置
-func LoadConfig(path string) (*Config, error) {
+// LoadConfigFromYAML 从 YAML 配置文件加载配置
+// 自动读取 config/app.yml 文件
+func LoadConfigFromYAML(path string) (*MQConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read config file failed: %w", err)
 	}
 
-	var cfg Config
-	if err := json.Unmarshal(data, &cfg); err != nil {
+	var cfg MQConfig
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("parse config failed: %w", err)
+	}
+
+	// 验证配置
+	if cfg.Type == "" {
+		return nil, fmt.Errorf("mq.type is required in config")
 	}
 
 	return &cfg, nil
 }
 
-// LoadConfigFromJSON 从 JSON 字符串加载配置
-func LoadConfigFromJSON(jsonStr string) (*Config, error) {
-	var cfg Config
-	if err := json.Unmarshal([]byte(jsonStr), &cfg); err != nil {
+// LoadDefaultConfig 加载默认位置的配置文件 (config/app.yml)
+func LoadDefaultConfig() (*MQConfig, error) {
+	return LoadConfigFromYAML("config/app.yml")
+}
+
+// LoadConfigFromYAMLString 从 YAML 字符串加载配置
+func LoadConfigFromYAMLString(yamlStr string) (*MQConfig, error) {
+	var cfg MQConfig
+	if err := yaml.Unmarshal([]byte(yamlStr), &cfg); err != nil {
 		return nil, fmt.Errorf("parse config failed: %w", err)
 	}
+
+	if cfg.Type == "" {
+		return nil, fmt.Errorf("mq.type is required in config")
+	}
+
 	return &cfg, nil
 }
 
@@ -322,25 +347,23 @@ type RabbitMQSubscriberExtension interface {
 
 // ==================== 兼容性类型别名 ====================
 
-// KafkaConfig Kafka 配置别名（兼容 sarama）
-type KafkaConfig = sarama.Config
+// KafkaConfigAlias Kafka 配置别名（兼容 sarama）
+type KafkaConfigAlias = sarama.Config
 
 // RabbitMQAddress RabbitMQ 地址格式别名
 type RabbitMQAddress = amqp091.Connection
 
-// ConfigJson 示例配置 JSON
-const ConfigJson = `{
-  "type": "kafka",
-  "redis": {
-    "addr": "localhost:6379",
-    "password": "",
-    "db": 0
-  },
-  "kafka": {
-    "addrs": ["localhost:9092"],
-    "groupId": "my_group"
-  },
-  "rabbitmq": {
-    "addr": "amqp://guest:guest@localhost:5672/"
-  }
-}`
+// ExampleYAMLConfig 示例配置 YAML
+const ExampleYAMLConfig = `mq:
+  type: "kafka"
+  redis:
+    addr: "localhost:6379"
+    password: ""
+    db: 0
+  kafka:
+    addrs:
+      - "localhost:9092"
+    groupId: "my_group"
+  rabbitmq:
+    addr: "amqp://guest:guest@localhost:5672/"
+`

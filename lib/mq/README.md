@@ -1,90 +1,32 @@
 # 统一消息队列 (MQ) 使用指南
 
-本模块提供统一的消息队列接口，根据配置自动选择底层实现（Redis、Kafka 或 RabbitMQ）。
+本模块提供统一的消息队列接口，根据配置文件自动选择底层实现（Redis、Kafka 或 RabbitMQ）。
 
 ## 快速开始
 
-### 1. 配置方式
+### 1. 配置 MQ
 
-#### 方式一：从文件加载配置
+在 `config/app.yml` 中配置使用的 MQ 类型：
 
-创建 `mq_config.json`：
+```yaml
+mq:
+  type: "kafka"  # 可选: redis, kafka, rabbitmq
 
-```json
-{
-  "type": "kafka",
-  "redis": {
-    "addr": "localhost:6379",
-    "password": "",
-    "db": 0
-  },
-  "kafka": {
-    "addrs": ["localhost:9092"],
-    "groupId": "my_group"
-  },
-  "rabbitmq": {
-    "addr": "amqp://guest:guest@localhost:5672/"
-  }
-}
-```
+  redis:
+    addr: "localhost:6379"
+    password: ""
+    db: 0
 
-代码中加载：
+  kafka:
+    addrs:
+      - "localhost:9092"
+    groupId: "my_group"
 
-```go
-cfg, err := mq.LoadConfig("mq_config.json")
-if err != nil {
-    log.Fatal(err)
-}
-
-mqInstance, err := mq.NewMQ(cfg)
-if err != nil {
-    log.Fatal(err)
-}
-defer mqInstance.Close()
-```
-
-#### 方式二：从 JSON 字符串加载
-
-```go
-cfg, err := mq.LoadConfigFromJSON(`{"type": "kafka", "kafka": {"addrs": ["localhost:9092"], "groupId": "my_group"}}`)
+  rabbitmq:
+    addr: "amqp://guest:guest@localhost:5672/"
 ```
 
 ### 2. 使用示例
-
-#### 发布消息
-
-```go
-ctx := context.Background()
-
-err := mqInstance.Publish(ctx, "my_topic", map[string]interface{}{
-    "type": "greeting",
-    "msg":  "Hello!",
-})
-if err != nil {
-    fmt.Println("Publish error:", err)
-}
-```
-
-#### 订阅消息
-
-```go
-err := mqInstance.Subscribe("my_topic", func(data []byte) {
-    fmt.Println("Received:", string(data))
-})
-if err != nil {
-    fmt.Println("Subscribe error:", err)
-}
-```
-
-### 3. 配置说明
-
-| 类型 | topic 参数含义 | 配置字段 |
-|------|----------------|----------|
-| Redis | channel 名称 | `redis.addr`, `redis.password`, `redis.db` |
-| Kafka | topic 名称 | `kafka.addrs`, `kafka.groupId` |
-| RabbitMQ | queue 名称 | `rabbitmq.addr` |
-
-### 4. 完整示例
 
 ```go
 package main
@@ -106,28 +48,13 @@ type Message struct {
 }
 
 func main() {
-	// 根据环境变量选择 MQ 类型
-	mqType := "kafka" // 可选: redis, kafka, rabbitmq
-
-	var cfg *mq.Config
-	switch mqType {
-	case "redis":
-		cfg, _ = mq.LoadConfigFromJSON(`{
-			"type": "redis",
-			"redis": {"addr": "localhost:6379", "password": "", "db": 0}
-		}`)
-	case "kafka":
-		cfg, _ = mq.LoadConfigFromJSON(`{
-			"type": "kafka",
-			"kafka": {"addrs": ["localhost:9092"], "groupId": "demo_group"}
-		}`)
-	case "rabbitmq":
-		cfg, _ = mq.LoadConfigFromJSON(`{
-			"type": "rabbitmq",
-			"rabbitmq": {"addr": "amqp://guest:guest@localhost:5672/"}
-		}`)
+	// 自动读取 config/app.yml
+	cfg, err := mq.LoadDefaultConfig()
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	// 根据配置自动选择 MQ 实现
 	mqInstance, err := mq.NewMQ(cfg)
 	if err != nil {
 		log.Fatal(err)
@@ -165,13 +92,26 @@ func main() {
 }
 ```
 
+## 配置说明
+
+| 字段 | 说明 | 示例值 |
+|------|------|--------|
+| `mq.type` | MQ 类型 | `kafka`, `redis`, `rabbitmq` |
+| `mq.redis.addr` | Redis 地址 | `localhost:6379` |
+| `mq.redis.password` | Redis 密码 | `""` |
+| `mq.redis.db` | Redis 数据库编号 | `0` |
+| `mq.kafka.addrs` | Kafka Broker 地址 | `["localhost:9092"]` |
+| `mq.kafka.groupId` | 消费者组 ID | `my_group` |
+| `mq.rabbitmq.addr` | RabbitMQ 地址 | `amqp://guest:guest@localhost:5672/` |
+
 ## API 参考
 
 | 方法 | 说明 |
 |------|------|
+| `LoadDefaultConfig()` | 自动加载 `config/app.yml` |
+| `LoadConfigFromYAML(path)` | 加载指定路径的 YAML 配置 |
+| `LoadConfigFromYAMLString(yaml)` | 从 YAML 字符串加载配置 |
 | `NewMQ(cfg)` | 根据配置创建 MQ 实例 |
-| `LoadConfig(path)` | 从文件加载配置 |
-| `LoadConfigFromJSON(json)` | 从 JSON 字符串加载配置 |
 | `Publish(ctx, topic, data)` | 发布消息 |
 | `Subscribe(topic, handler)` | 订阅消息 |
 | `SubscribeMany(topics, handler)` | 订阅多个主题 |
@@ -182,7 +122,7 @@ func main() {
 
 ## 切换 MQ 方案
 
-只需修改配置中的 `type` 字段，无需修改业务代码：
+只需修改 `config/app.yml` 中的 `mq.type` 字段，业务代码无需任何改动：
 
 | type 值 | 底层实现 |
 |---------|----------|
@@ -190,25 +130,22 @@ func main() {
 | `"kafka"` | Kafka Producer/Consumer |
 | `"rabbitmq"` | RabbitMQ 队列 |
 
-## 进阶使用
+## topic 参数含义
 
-### 访问底层实现
+| MQ 类型 | topic 参数含义 |
+|---------|----------------|
+| Redis | channel 名称 |
+| Kafka | topic 名称 |
+| RabbitMQ | queue 名称 |
 
-如需使用特定 MQ 的高级特性，可以通过类型断言：
+## 项目结构
 
-```go
-// 访问 Kafka 生产者
-if mqInstance.GetType() == "kafka" {
-    // 获取底层 producer 进行高级操作
-    // 注意：需要自行维护类型
-}
 ```
-
-### RabbitMQ 交换机模式
-
-RabbitMQ 支持交换机模式，但统一接口仅封装了队列模式。如需使用交换机，请直接使用 `rabbitmq` 包：
-
-```go
-sub, _ := rabbitmq.NewSubscriber("amqp://guest:guest@localhost:5672/")
-sub.SubscribeToExchange("my_exchange", "my_queue", "order.*", handler)
+your-project/
+├── config/
+│   └── app.yml          # MQ 配置文件
+├── lib/
+│   └── mq/
+│       └── base.go      # 统一 MQ 接口
+└── main.go              # 业务代码
 ```
