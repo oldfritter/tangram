@@ -38,7 +38,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/oldfritter/tangram/lib/mq"
+	"github.com/oldfritter/tangram"
 )
 
 type Message struct {
@@ -144,8 +144,6 @@ func main() {
 your-project/
 ├── config/
 │   └── app.yml          # MQ 配置文件
-├── lib/
-│   └── mq/
-│       └── base.go      # 统一 MQ 接口
+├── mq.go                # 统一 MQ 接口
 └── main.go              # 业务代码
 ```
