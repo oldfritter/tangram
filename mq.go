@@ -262,7 +262,23 @@ func LoadConfigFromYAML(path string) (*MQConfig, error) {
 
 // LoadDefaultConfig 加载默认位置的配置文件 (example/config/app.yml)
 func LoadDefaultConfig() (*MQConfig, error) {
-	return LoadConfigFromYAML("example/config/app.yml")
+	// 尝试从多个位置加载配置
+	paths := []string{
+		"example/config/app.yml",      // 从项目根目录
+		"../config/app.yml",           // 从 example 目录
+		"../../example/config/app.yml", // 从 example/* 目录
+	}
+
+	var lastErr error
+	for _, path := range paths {
+		cfg, err := LoadConfigFromYAML(path)
+		if err == nil {
+			return cfg, nil
+		}
+		lastErr = err
+	}
+
+	return nil, fmt.Errorf("failed to load config from any location: %w", lastErr)
 }
 
 // LoadConfigFromYAMLString 从 YAML 字符串加载配置
