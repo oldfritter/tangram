@@ -91,7 +91,7 @@ tangram/
 ├── MQ.md                 # MQ 使用指南（英文）
 ├── MQ_CN.md              # MQ 使用指南（中文）
 ├── README.md             # 本文件
-├── README_CN.MD          # 中文版本
+├── readme_cn.md          # 中文版本
 ├── example/              # 使用示例
 │   ├── config/           # 示例配置
 │   ├── redis/            # Redis 示例
