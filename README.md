@@ -1,6 +1,6 @@
 # Tangram - Distributed Service Integration Framework
 
-> [中文版](./readme_cn.md)
+> [中文版](./README_CN.md)
 
 Tangram is a framework for integrating distributed services across the network into a production system. It provides unified message queue communication between service nodes.
 
@@ -91,7 +91,7 @@ tangram/
 ├── MQ.md                 # MQ usage guide (English)
 ├── MQ_CN.md              # MQ usage guide (Chinese)
 ├── README.md             # This file
-├── readme_cn.md          # Chinese version
+├── README_CN.md          # Chinese version
 ├── config/
 │   └── app.yml           # Configuration file
 ├── example/              # Usage examples
