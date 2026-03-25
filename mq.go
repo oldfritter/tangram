@@ -10,6 +10,7 @@ import (
 	"github.com/oldfritter/tangram/lib/kafka"
 	"github.com/oldfritter/tangram/lib/rabbitmq"
 	"github.com/oldfritter/tangram/lib/redis"
+	"github.com/oldfritter/tangram/lib/rocketmq"
 	"github.com/rabbitmq/amqp091-go"
 	"gopkg.in/yaml.v3"
 )
@@ -19,7 +20,7 @@ type MessageHandler func(data []byte)
 
 // MQConfig MQ 配置结构（对应 example/config/app.yml）
 type MQConfig struct {
-	// 类型: kafka, rabbitmq, redis
+	// 类型: kafka, rabbitmq, redis, rocketmq
 	Type string `yaml:"type"`
 
 	// Redis 配置
@@ -30,6 +31,9 @@ type MQConfig struct {
 
 	// RabbitMQ 配置
 	RabbitMQ RabbitMQConfig `yaml:"rabbitmq"`
+
+	// RocketMQ 配置
+	RocketMQ RocketMQConfig `yaml:"rocketmq"`
 }
 
 // RedisConfig Redis 配置
@@ -48,6 +52,12 @@ type KafkaConfig struct {
 // RabbitMQConfig RabbitMQ 配置
 type RabbitMQConfig struct {
 	Addr string `yaml:"addr"` // 连接地址，如 amqp://guest:guest@localhost:5672/
+}
+
+// RocketMQConfig RocketMQ 配置
+type RocketMQConfig struct {
+	NameServer string `yaml:"nameServer"` // NameServer 地址，如 localhost:9876
+	GroupID    string `yaml:"groupId"`    // 消费者组 ID
 }
 
 // publisher 发布者接口
@@ -96,6 +106,11 @@ func NewMQ(cfg *MQConfig) (*MQ, error) {
 		mq.msgType = "queue"
 		if err := mq.initRabbitMQ(); err != nil {
 			return nil, fmt.Errorf("init rabbitmq failed: %w", err)
+		}
+	case "rocketmq":
+		mq.msgType = "topic"
+		if err := mq.initRocketMQ(); err != nil {
+			return nil, fmt.Errorf("init rocketmq failed: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("unsupported MQ type: %s", cfg.Type)
@@ -196,11 +211,31 @@ func (m *MQ) initRabbitMQ() error {
 	return nil
 }
 
+func (m *MQ) initRocketMQ() error {
+	var err error
+
+	// 生产者
+	m.pub, err = rocketmq.NewPublisher(m.cfg.RocketMQ.NameServer)
+	if err != nil {
+		return err
+	}
+
+	// 消费者
+	m.sub, err = rocketmq.NewSubscriber(m.cfg.RocketMQ.NameServer, m.cfg.RocketMQ.GroupID)
+	if err != nil {
+		m.pub.(*rocketmq.Publisher).Close()
+		return err
+	}
+
+	return nil
+}
+
 // Publish 发布消息
 // topic 的含义取决于配置的 MQ 类型:
 // - Redis: channel 名称
 // - Kafka: topic 名称
 // - RabbitMQ: queue 名称
+// - RocketMQ: topic 名称
 func (m *MQ) Publish(ctx context.Context, topic string, data interface{}) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -223,6 +258,7 @@ func (m *MQ) Publish(ctx context.Context, topic string, data interface{}) error 
 // - Redis: channel 名称
 // - Kafka: topic 名称
 // - RabbitMQ: queue 名称
+// - RocketMQ: topic 名称
 func (m *MQ) Subscribe(topic string, handler MessageHandler) error {
 	if m.sub == nil {
 		return fmt.Errorf("subscriber not initialized")
