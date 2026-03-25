@@ -1,19 +1,19 @@
 mq:
-  type: "kafka"
+  type: "kafka"  # 可选: redis, kafka, rabbitmq, rocketmq
 
-redis:
-  addr: "localhost:6379"
-  password: ""
-  db: 0
+  redis:
+    addr: "localhost:6379"
+    password: ""
+    db: 0
 
-kafka:
-  addrs:
-    - "localhost:9092"
-  groupId: "my_group"
+  kafka:
+    addrs:
+      - "localhost:9092"
+    groupId: "my_group"
 
-rabbitmq:
-  addr: "amqp://guest:guest@localhost:5672/"
+  rabbitmq:
+    addr: "amqp://guest:guest@localhost:5672/"
 
-rocketmq:
-  nameServer: "localhost:9876"
-  groupId: "my_group"
+  rocketmq:
+    nameServer: "localhost:9876"
+    groupId: "my_group"

@@ -247,9 +247,37 @@ func LoadConfigFromYAML(path string) (*MQConfig, error) {
 		return nil, fmt.Errorf("read config file failed: %w", err)
 	}
 
-	var cfg MQConfig
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
+	// 先解析为 map[string]interface{} 检查是否有顶层 mq 键
+	var rawData interface{}
+	if err := yaml.Unmarshal(data, &rawData); err != nil {
 		return nil, fmt.Errorf("parse config failed: %w", err)
+	}
+
+	var cfg MQConfig
+
+	switch v := rawData.(type) {
+	case map[string]interface{}:
+		// 检查是否有顶层 mq 键
+		if mqData, ok := v["mq"]; ok {
+			// 有顶层 mq 键，提取出来解析
+			mqBytes, err := yaml.Marshal(mqData)
+			if err != nil {
+				return nil, fmt.Errorf("marshal mq config failed: %w", err)
+			}
+			if err := yaml.Unmarshal(mqBytes, &cfg); err != nil {
+				return nil, fmt.Errorf("parse config failed: %w", err)
+			}
+		} else {
+			// 没有顶层 mq 键，直接解析整个文件
+			if err := yaml.Unmarshal(data, &cfg); err != nil {
+				return nil, fmt.Errorf("parse config failed: %w", err)
+			}
+		}
+	default:
+		// 直接解析
+		if err := yaml.Unmarshal(data, &cfg); err != nil {
+			return nil, fmt.Errorf("parse config failed: %w", err)
+		}
 	}
 
 	// 验证配置
@@ -262,7 +290,23 @@ func LoadConfigFromYAML(path string) (*MQConfig, error) {
 
 // LoadDefaultConfig 加载默认位置的配置文件 (example/config/app.yml)
 func LoadDefaultConfig() (*MQConfig, error) {
-	return LoadConfigFromYAML("example/config/app.yml")
+	// 尝试从多个位置加载配置
+	paths := []string{
+		"example/config/app.yml",       // 从项目根目录
+		"../example/config/app.yml",   // 从 example 目录
+		"../../example/config/app.yml", // 从 example/* 目录
+	}
+
+	var lastErr error
+	for _, path := range paths {
+		cfg, err := LoadConfigFromYAML(path)
+		if err == nil {
+			return cfg, nil
+		}
+		lastErr = err
+	}
+
+	return nil, fmt.Errorf("failed to load config from any location: %w", lastErr)
 }
 
 // LoadConfigFromYAMLString 从 YAML 字符串加载配置
