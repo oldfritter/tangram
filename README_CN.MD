@@ -193,4 +193,4 @@ mq:
 
 ## 许可证
 
-MIT License
+MIT License - 见 [LICENSE](./LICENSE) 文件了解详情。
