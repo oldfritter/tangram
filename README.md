@@ -112,6 +112,7 @@ tangram/
 | Redis | Pub/Sub | ❌ | ❌ | Real-time messaging, low latency |
 | Kafka | Producer/Consumer | ✅ | ✅ | High throughput, log aggregation |
 | RabbitMQ | Queue/Exchange | ✅ | ✅ | Flexible routing, complex workflows |
+| RocketMQ | Producer/Consumer | ✅ | ✅ | Distributed transactions, ordered messages |
 
 ## API Usage
 
@@ -124,7 +125,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/oldfritter/tangram"
+	"github.com/oldfritter/tangram" as mq
 )
 
 func main() {

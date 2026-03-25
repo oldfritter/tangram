@@ -12,7 +12,7 @@
 
 ```yaml
 mq:
-  type: "kafka"  # 可选: redis, kafka, rabbitmq
+  type: "kafka"  # 可选: redis, kafka, rabbitmq, rocketmq, rocketmq
 
   redis:
     addr: "localhost:6379"

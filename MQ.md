@@ -12,7 +12,7 @@ Configure the MQ type in `example/config/app.yml`:
 
 ```yaml
 mq:
-  type: "kafka"  # Options: redis, kafka, rabbitmq
+  type: "kafka"  # Options: redis, kafka, rabbitmq, rocketmq
 
   redis:
     addr: "localhost:6379"
@@ -26,6 +26,10 @@ mq:
 
   rabbitmq:
     addr: "amqp://guest:guest@localhost:5672/"
+
+  rocketmq:
+    nameServer: "localhost:9876"
+    groupId: "my_group"
 ```
 
 ### 2. Usage Example
@@ -98,13 +102,15 @@ func main() {
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `mq.type` | MQ type | `kafka`, `redis`, `rabbitmq` |
+| `mq.type` | MQ type | `kafka`, `redis`, `rabbitmq`, `rocketmq` |
 | `mq.redis.addr` | Redis address | `localhost:6379` |
 | `mq.redis.password` | Redis password | `""` |
 | `mq.redis.db` | Redis database number | `0` |
 | `mq.kafka.addrs` | Kafka broker addresses | `["localhost:9092"]` |
 | `mq.kafka.groupId` | Consumer group ID | `my_group` |
 | `mq.rabbitmq.addr` | RabbitMQ address | `amqp://guest:guest@localhost:5672/` |
+| `mq.rocketmq.nameServer` | RocketMQ NameServer address | `localhost:9876` |
+| `mq.rocketmq.groupId` | RocketMQ consumer group ID | `my_group` |
 
 ## API Reference
 
@@ -131,6 +137,7 @@ Simply modify the `mq.type` field in `example/config/app.yml`, no business code 
 | `"redis"` | Redis Pub/Sub |
 | `"kafka"` | Kafka Producer/Consumer |
 | `"rabbitmq"` | RabbitMQ Queue |
+| `"rocketmq"` | RocketMQ Producer/Consumer |
 
 ## Topic Parameter Meaning
 

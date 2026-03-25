@@ -110,6 +110,7 @@ tangram/
 | Redis | Pub/Sub | ❌ | ❌ | 实时通讯、低延迟 |
 | Kafka | Producer/Consumer | ✅ | ✅ | 高吞吐量、日志聚合 |
 | RabbitMQ | 队列/交换机 | ✅ | ✅ | 灵活路由、复杂工作流 |
+| RocketMQ | Producer/Consumer | ✅ | ✅ | 分布式事务、顺序消息 |
 
 ## API 使用
 
@@ -122,7 +123,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/oldfritter/tangram"
+	"github.com/oldfritter/tangram" as mq
 )
 
 func main() {
