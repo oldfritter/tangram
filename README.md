@@ -134,7 +134,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/oldfritter/tangram" as mq
+	mq "github.com/oldfritter/tangram"
 )
 
 func main() {
