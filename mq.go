@@ -17,7 +17,7 @@ import (
 // MessageHandler 处理收到消息的函数类型
 type MessageHandler func(data []byte)
 
-// MQConfig MQ 配置结构（对应 config/app.yml）
+// MQConfig MQ 配置结构（对应 example/config/app.yml）
 type MQConfig struct {
 	// 类型: kafka, rabbitmq, redis
 	Type string `yaml:"type"`
@@ -125,9 +125,9 @@ func LoadConfigFromYAML(path string) (*MQConfig, error) {
 	return &cfg, nil
 }
 
-// LoadDefaultConfig 加载默认位置的配置文件 (config/app.yml)
+// LoadDefaultConfig 加载默认位置的配置文件 (example/config/app.yml)
 func LoadDefaultConfig() (*MQConfig, error) {
-	return LoadConfigFromYAML("config/app.yml")
+	return LoadConfigFromYAML("example/config/app.yml")
 }
 
 // LoadConfigFromYAMLString 从 YAML 字符串加载配置

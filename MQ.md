@@ -6,7 +6,7 @@
 
 ### 1. 配置 MQ
 
-在 `config/app.yml` 中配置使用的 MQ 类型：
+在 `example/config/app.yml` 中配置使用的 MQ 类型：
 
 ```yaml
 mq:
@@ -122,7 +122,7 @@ func main() {
 
 ## 切换 MQ 方案
 
-只需修改 `config/app.yml` 中的 `mq.type` 字段，业务代码无需任何改动：
+只需修改 `example/config/app.yml` 中的 `mq.type` 字段，业务代码无需任何改动：
 
 | type 值 | 底层实现 |
 |---------|----------|
@@ -142,8 +142,12 @@ func main() {
 
 ```
 your-project/
-├── config/
-│   └── app.yml          # MQ 配置文件
-├── mq.go                # 统一 MQ 接口
-└── main.go              # 业务代码
+├── example/
+│   ├── config/
+│   │   └── app.yml     # MQ 配置文件
+│   ├── redis/
+│   ├── kafka/
+│   └── rabbitmq/
+├── mq.go               # 统一 MQ 接口
+└── main.go             # 业务代码
 ```
