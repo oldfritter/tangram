@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/oldfritter/tangram/lib/mq"
+	"github.com/oldfritter/tangram"
 )
 
 type Message struct {
