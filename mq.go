@@ -60,6 +60,126 @@ type RocketMQConfig struct {
 	GroupID    string `yaml:"groupId"`    // 消费者组 ID
 }
 
+// ==================== 适配器实现 ====================
+
+// redisPublisherAdapter Redis 发布者适配器
+type redisPublisherAdapter struct {
+	pub *redis.Publisher
+}
+
+func (a *redisPublisherAdapter) Publish(ctx context.Context, topic string, data interface{}) error {
+	return a.pub.Publish(ctx, topic, data)
+}
+
+func (a *redisPublisherAdapter) Close() error {
+	return a.pub.Close()
+}
+
+// redisSubscriberAdapter Redis 订阅者适配器
+type redisSubscriberAdapter struct {
+	sub *redis.Subscriber
+}
+
+func (a *redisSubscriberAdapter) Subscribe(topic string, handler func(data []byte)) error {
+	a.sub.Subscribe(topic, func(data []byte) {
+		handler(data)
+	})
+	return nil
+}
+
+func (a *redisSubscriberAdapter) SubscribeMany(topics []string, handler func(data []byte)) error {
+	a.sub.SubscribeMany(topics, func(data []byte) {
+		handler(data)
+	})
+	return nil
+}
+
+func (a *redisSubscriberAdapter) Unsubscribe(topic string) {
+	a.sub.Unsubscribe(topic)
+}
+
+func (a *redisSubscriberAdapter) Close() error {
+	return a.sub.Close()
+}
+
+// kafkaPublisherAdapter Kafka 生产者适配器
+type kafkaPublisherAdapter struct {
+	prod *kafka.Producer
+}
+
+func (a *kafkaPublisherAdapter) Publish(ctx context.Context, topic string, data interface{}) error {
+	return a.prod.Publish(ctx, topic, "", data)
+}
+
+func (a *kafkaPublisherAdapter) Close() error {
+	return a.prod.Close()
+}
+
+// kafkaSubscriberAdapter Kafka 消费者适配器
+type kafkaSubscriberAdapter struct {
+	cons *kafka.Consumer
+}
+
+func (a *kafkaSubscriberAdapter) Subscribe(topic string, handler func(data []byte)) error {
+	a.cons.Subscribe(topic, func(data []byte) {
+		handler(data)
+	})
+	return nil
+}
+
+func (a *kafkaSubscriberAdapter) SubscribeMany(topics []string, handler func(data []byte)) error {
+	a.cons.SubscribeMany(topics, func(data []byte) {
+		handler(data)
+	})
+	return nil
+}
+
+func (a *kafkaSubscriberAdapter) Unsubscribe(topic string) {
+	a.cons.Unsubscribe(topic)
+}
+
+func (a *kafkaSubscriberAdapter) Close() error {
+	return a.cons.Close()
+}
+
+// rabbitmqPublisherAdapter RabbitMQ 发布者适配器
+type rabbitmqPublisherAdapter struct {
+	pub *rabbitmq.Publisher
+}
+
+func (a *rabbitmqPublisherAdapter) Publish(ctx context.Context, topic string, data interface{}) error {
+	return a.pub.Publish(ctx, topic, data)
+}
+
+func (a *rabbitmqPublisherAdapter) Close() error {
+	return a.pub.Close()
+}
+
+// rabbitmqSubscriberAdapter RabbitMQ 订阅者适配器
+type rabbitmqSubscriberAdapter struct {
+	sub *rabbitmq.Subscriber
+}
+
+func (a *rabbitmqSubscriberAdapter) Subscribe(topic string, handler func(data []byte)) error {
+	return a.sub.Subscribe(topic, func(data []byte) {
+		handler(data)
+	})
+}
+
+func (a *rabbitmqSubscriberAdapter) SubscribeMany(topics []string, handler func(data []byte)) error {
+	return a.sub.SubscribeMany(topics, func(data []byte) {
+		handler(data)
+	})
+}
+
+func (a *rabbitmqSubscriberAdapter) Unsubscribe(topic string) {
+	a.sub.Unsubscribe(topic)
+}
+
+func (a *rabbitmqSubscriberAdapter) Close() error {
+	return a.sub.Close()
+}
+
 // publisher 发布者接口
 type publisher interface {
 	Publish(ctx context.Context, topic string, data interface{}) error
@@ -68,8 +188,8 @@ type publisher interface {
 
 // subscriber 订阅者接口
 type subscriber interface {
-	Subscribe(topic string, handler MessageHandler) error
-	SubscribeMany(topics []string, handler MessageHandler) error
+	Subscribe(topic string, handler func(data []byte)) error
+	SubscribeMany(topics []string, handler func(data []byte)) error
 	Unsubscribe(topic string)
 	Close() error
 }
@@ -160,74 +280,110 @@ func LoadConfigFromYAMLString(yamlStr string) (*MQConfig, error) {
 }
 
 func (m *MQ) initRedis() error {
-	m.pub = redis.NewPublisher(
-		m.cfg.Redis.Addr,
-		m.cfg.Redis.Password,
-		m.cfg.Redis.DB,
-	)
-	m.sub = redis.NewSubscriber(
-		m.cfg.Redis.Addr,
-		m.cfg.Redis.Password,
-		m.cfg.Redis.DB,
-	)
+	// 创建 Redis 发布者
+	pub := redis.NewPublisher(m.cfg.Redis.Addr, m.cfg.Redis.Password, m.cfg.Redis.DB)
+	m.pub = &redisPublisherAdapter{pub: pub}
+
+	// 创建 Redis 订阅者
+	sub := redis.NewSubscriber(m.cfg.Redis.Addr, m.cfg.Redis.Password, m.cfg.Redis.DB)
+	m.sub = &redisSubscriberAdapter{sub: sub}
+
 	return nil
 }
 
 func (m *MQ) initKafka() error {
-	var err error
-
-	// 生产者
-	m.pub, err = kafka.NewProducer(m.cfg.Kafka.Addrs, nil)
+	// 创建 Kafka 生产者
+	prod, err := kafka.NewProducer(m.cfg.Kafka.Addrs, nil)
 	if err != nil {
 		return err
 	}
+	m.pub = &kafkaPublisherAdapter{prod: prod}
 
-	// 消费者
-	m.sub, err = kafka.NewConsumer(m.cfg.Kafka.Addrs, m.cfg.Kafka.GroupID, nil)
+	// 创建 Kafka 消费者
+	cons, err := kafka.NewConsumer(m.cfg.Kafka.Addrs, m.cfg.Kafka.GroupID, nil)
 	if err != nil {
-		m.pub.(*kafka.Producer).Close()
+		m.pub.(*kafkaPublisherAdapter).Close()
 		return err
 	}
+	m.sub = &kafkaSubscriberAdapter{cons: cons}
 
 	return nil
 }
 
 func (m *MQ) initRabbitMQ() error {
-	var err error
-
-	// 发布者
-	m.pub, err = rabbitmq.NewPublisher(m.cfg.RabbitMQ.Addr)
+	// 创建 RabbitMQ 发布者
+	pub, err := rabbitmq.NewPublisher(m.cfg.RabbitMQ.Addr)
 	if err != nil {
 		return err
 	}
+	m.pub = &rabbitmqPublisherAdapter{pub: pub}
 
-	// 订阅者
-	m.sub, err = rabbitmq.NewSubscriber(m.cfg.RabbitMQ.Addr)
+	// 创建 RabbitMQ 订阅者
+	sub, err := rabbitmq.NewSubscriber(m.cfg.RabbitMQ.Addr)
 	if err != nil {
-		m.pub.(*rabbitmq.Publisher).Close()
+		m.pub.(*rabbitmqPublisherAdapter).Close()
 		return err
 	}
+	m.sub = &rabbitmqSubscriberAdapter{sub: sub}
 
 	return nil
 }
 
 func (m *MQ) initRocketMQ() error {
-	var err error
-
-	// 生产者
-	m.pub, err = rocketmq.NewPublisher(m.cfg.RocketMQ.NameServer)
+	// 创建 RocketMQ 发布者
+	pub, err := rocketmq.NewPublisher(m.cfg.RocketMQ.NameServer)
 	if err != nil {
 		return err
 	}
+	m.pub = &rocketmqPublisherAdapter{pub: pub}
 
-	// 消费者
-	m.sub, err = rocketmq.NewSubscriber(m.cfg.RocketMQ.NameServer, m.cfg.RocketMQ.GroupID)
+	// 创建 RocketMQ 订阅者
+	sub, err := rocketmq.NewSubscriber(m.cfg.RocketMQ.NameServer, m.cfg.RocketMQ.GroupID)
 	if err != nil {
-		m.pub.(*rocketmq.Publisher).Close()
+		m.pub.(*rocketmqPublisherAdapter).Close()
 		return err
 	}
+	m.sub = &rocketmqSubscriberAdapter{sub: sub}
 
 	return nil
+}
+
+// rocketmqPublisherAdapter RocketMQ 发布者适配器
+type rocketmqPublisherAdapter struct {
+	pub *rocketmq.Publisher
+}
+
+func (a *rocketmqPublisherAdapter) Publish(ctx context.Context, topic string, data interface{}) error {
+	return a.pub.Publish(ctx, topic, data)
+}
+
+func (a *rocketmqPublisherAdapter) Close() error {
+	return a.pub.Close()
+}
+
+// rocketmqSubscriberAdapter RocketMQ 订阅者适配器
+type rocketmqSubscriberAdapter struct {
+	sub *rocketmq.Subscriber
+}
+
+func (a *rocketmqSubscriberAdapter) Subscribe(topic string, handler func(data []byte)) error {
+	return a.sub.Subscribe(topic, func(data []byte) {
+		handler(data)
+	})
+}
+
+func (a *rocketmqSubscriberAdapter) SubscribeMany(topics []string, handler func(data []byte)) error {
+	return a.sub.SubscribeMany(topics, func(data []byte) {
+		handler(data)
+	})
+}
+
+func (a *rocketmqSubscriberAdapter) Unsubscribe(topic string) {
+	a.sub.Unsubscribe(topic)
+}
+
+func (a *rocketmqSubscriberAdapter) Close() error {
+	return a.sub.Close()
 }
 
 // Publish 发布消息
@@ -244,13 +400,7 @@ func (m *MQ) Publish(ctx context.Context, topic string, data interface{}) error 
 		return fmt.Errorf("publisher not initialized")
 	}
 
-	switch m.cfg.Type {
-	case "kafka":
-		// Kafka 需要 key 参数，这里使用空字符串
-		return m.pub.Publish(ctx, topic, "", data)
-	default:
-		return m.pub.Publish(ctx, topic, data)
-	}
+	return m.pub.Publish(ctx, topic, data)
 }
 
 // Subscribe 订阅消息

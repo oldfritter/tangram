@@ -56,9 +56,7 @@ func (p *Producer) Publish(ctx context.Context, topic string, key string, data i
 		}
 	}
 
-	var msgKey *string
 	if key != "" {
-		msgKey = &key
 	}
 
 	msg := &sarama.ProducerMessage{
@@ -159,7 +157,7 @@ func (h *ConsumeHandler) Cleanup(sarama.ConsumerGroupSession) error {
 func (h *ConsumeHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
 		h.mu.Lock()
-		handler, exists := h.handlers[*msg.Topic]
+		handler, exists := h.handlers[msg.Topic]
 		h.mu.Unlock()
 
 		if exists && handler != nil {

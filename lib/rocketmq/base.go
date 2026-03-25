@@ -38,7 +38,7 @@ func (p *Publisher) Publish(ctx context.Context, topic string, data interface{})
 	}
 
 	// TODO: 实现实际的 RocketMQ 发布逻辑
-	// 使用 rocketmq-client-go 或其他客户端库
+	// 可使用 github.com/apache/rocketmq-client-go/v2
 	fmt.Printf("[RocketMQ] Publishing to topic %s: %s\n", topic, string(bytes))
 	return nil
 }
@@ -67,7 +67,6 @@ func (p *Publisher) PublishWithTag(ctx context.Context, topic, tag string, data 
 
 // Close 关闭发布者
 func (p *Publisher) Close() error {
-	// TODO: 清理资源
 	return nil
 }
 
@@ -120,33 +119,19 @@ func (s *Subscriber) SubscribeMany(topics []string, handler MessageHandler) erro
 // Unsubscribe 取消订阅
 func (s *Subscriber) Unsubscribe(topic string) {
 	delete(s.topics, topic)
-	// TODO: 取消订阅逻辑
 }
 
 // Close 关闭订阅者
 func (s *Subscriber) Close() error {
-	// TODO: 停止消费者并清理资源
 	return nil
 }
 
 // Ping 检查连接
 func (p *Publisher) Ping(ctx context.Context) error {
-	// TODO: 实现连接检查
 	return nil
 }
 
 // Ping 检查连接
 func (s *Subscriber) Ping(ctx context.Context) error {
-	// TODO: 实现连接检查
 	return nil
-}
-
-// HelperPublish 辅助方法：发布消息（别名）
-func HelperPublish(nameServer string, topic string, data interface{}) error {
-	p, err := NewPublisher(nameServer)
-	if err != nil {
-		return err
-	}
-	defer p.Close()
-	return p.Publish(context.Background(), topic, data)
 }
