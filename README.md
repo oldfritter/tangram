@@ -54,7 +54,7 @@ Edit `example/config/app.yml`:
 
 ```yaml
 mq:
-  type: "kafka"  # Options: redis, kafka, rabbitmq
+  type: "kafka"  # Options: redis, kafka, rabbitmq, rocketmq
 
   redis:
     addr: "localhost:6379"
@@ -68,6 +68,10 @@ mq:
 
   rabbitmq:
     addr: "amqp://guest:guest@localhost:5672/"
+
+  rocketmq:
+    nameServer: "localhost:9876"
+    groupId: "my_group"
 ```
 
 ### 3. Run Examples
@@ -81,6 +85,9 @@ cd example/kafka && go run main.go
 
 # RabbitMQ example
 cd example/rabbitmq && go run main.go
+
+# RocketMQ example
+cd example/rocketmq && go run main.go
 ```
 
 ## Project Structure
@@ -98,11 +105,13 @@ tangram/
 │   ├── config/          # Example config
 │   ├── redis/           # Redis example
 │   ├── kafka/           # Kafka example
-│   └── rabbitmq/        # RabbitMQ example
+│   ├── rabbitmq/        # RabbitMQ example
+│   └── rocketmq/         # RocketMQ example
 └── lib/                  # MQ implementations
     ├── redis/           # Redis Pub/Sub
     ├── kafka/           # Kafka Producer/Consumer
-    └── rabbitmq/        # RabbitMQ Queue/Exchange
+    ├── rabbitmq/        # RabbitMQ Queue/Exchange
+    └── rocketmq/        # RocketMQ Producer/Consumer
 ```
 
 ## Supported Message Queues

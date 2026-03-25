@@ -54,7 +54,7 @@ cd tangram
 
 ```yaml
 mq:
-  type: "kafka"  # 可选: redis, kafka, rabbitmq
+  type: "kafka"  # 可选: redis, kafka, rabbitmq, rocketmq
 
   redis:
     addr: "localhost:6379"
@@ -68,6 +68,10 @@ mq:
 
   rabbitmq:
     addr: "amqp://guest:guest@localhost:5672/"
+
+  rocketmq:
+    nameServer: "localhost:9876"
+    groupId: "my_group"
 ```
 
 ### 3. 运行示例
@@ -81,6 +85,9 @@ cd example/kafka && go run main.go
 
 # RabbitMQ 示例
 cd example/rabbitmq && go run main.go
+
+# RocketMQ 示例
+cd example/rocketmq && go run main.go
 ```
 
 ## 项目结构
@@ -96,11 +103,13 @@ tangram/
 │   ├── config/           # 示例配置
 │   ├── redis/            # Redis 示例
 │   ├── kafka/            # Kafka 示例
-│   └── rabbitmq/         # RabbitMQ 示例
+│   ├── rabbitmq/         # RabbitMQ 示例
+│   └── rocketmq/         # RocketMQ 示例
 └── lib/                  # MQ 实现
     ├── redis/            # Redis Pub/Sub
     ├── kafka/            # Kafka Producer/Consumer
-    └── rabbitmq/         # RabbitMQ 队列/交换机
+    ├── rabbitmq/         # RabbitMQ 队列/交换机
+    └── rocketmq/        # RocketMQ Producer/Consumer
 ```
 
 ## 支持的消息队列
