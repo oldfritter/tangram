@@ -2,7 +2,7 @@
 
 > [中文版](./MQ_CN.md)
 
-This module provides a unified message queue interface that automatically selects the underlying implementation (Redis, Kafka, or RabbitMQ) based on the configuration file.
+This module provides a unified message queue interface that automatically selects the underlying implementation (Redis, Kafka, RabbitMQ, or RocketMQ) based on the configuration file.
 
 ## Quick Start
 
@@ -146,6 +146,7 @@ Simply modify the `mq.type` field in `example/config/app.yml`, no business code 
 | Redis | channel name |
 | Kafka | topic name |
 | RabbitMQ | queue name |
+| RocketMQ | topic name |
 
 ## Project Structure
 
@@ -156,7 +157,8 @@ your-project/
 │   │   └── app.yml     # MQ config file
 │   ├── redis/
 │   ├── kafka/
-│   └── rabbitmq/
+│   ├── rabbitmq/
+│   └── rocketmq/
 ├── mq.go               # Unified MQ interface
 └── main.go             # Business code
 ```

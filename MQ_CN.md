@@ -2,7 +2,7 @@
 
 > [English](./MQ.md)
 
-本模块提供统一的消息队列接口，根据配置文件自动选择底层实现（Redis、Kafka 或 RabbitMQ）。
+本模块提供统一的消息队列接口，根据配置文件自动选择底层实现（Redis、Kafka、RabbitMQ 或 RocketMQ）。
 
 ## 快速开始
 
@@ -12,7 +12,7 @@
 
 ```yaml
 mq:
-  type: "kafka"  # 可选: redis, kafka, rabbitmq, rocketmq, rocketmq
+  type: "kafka"  # 可选: redis, kafka, rabbitmq, rocketmq
 
   redis:
     addr: "localhost:6379"
@@ -26,6 +26,10 @@ mq:
 
   rabbitmq:
     addr: "amqp://guest:guest@localhost:5672/"
+
+  rocketmq:
+    nameServer: "localhost:9876"
+    groupId: "my_group"
 ```
 
 ### 2. 使用示例
@@ -105,6 +109,8 @@ func main() {
 | `mq.kafka.addrs` | Kafka Broker 地址 | `["localhost:9092"]` |
 | `mq.kafka.groupId` | 消费者组 ID | `my_group` |
 | `mq.rabbitmq.addr` | RabbitMQ 地址 | `amqp://guest:guest@localhost:5672/` |
+| `mq.rocketmq.nameServer` | RocketMQ NameServer 地址 | `localhost:9876` |
+| `mq.rocketmq.groupId` | RocketMQ 消费者组 ID | `my_group` |
 
 ## API 参考
 
@@ -131,6 +137,7 @@ func main() {
 | `"redis"` | Redis Pub/Sub |
 | `"kafka"` | Kafka Producer/Consumer |
 | `"rabbitmq"` | RabbitMQ 队列 |
+| `"rocketmq"` | RocketMQ Producer/Consumer |
 
 ## topic 参数含义
 
@@ -139,6 +146,7 @@ func main() {
 | Redis | channel 名称 |
 | Kafka | topic 名称 |
 | RabbitMQ | queue 名称 |
+| RocketMQ | topic 名称 |
 
 ## 项目结构
 
@@ -149,7 +157,8 @@ your-project/
 │   │   └── app.yml     # MQ 配置文件
 │   ├── redis/
 │   ├── kafka/
-│   └── rabbitmq/
+│   ├── rabbitmq/
+│   └── rocketmq/
 ├── mq.go               # 统一 MQ 接口
 └── main.go             # 业务代码
 ```
